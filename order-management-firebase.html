@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>門市訂貨管理</title>
+<style>
+  :root {
+    --bg: #f5f6f4; --card: #ffffff; --text: #1f2320; --text-dim: #6b7168;
+    --border: #e2e5e0; --accent: #4c8c5b; --accent-dim: #dfeee2; --accent-text: #ffffff;
+    --danger: #b03a3a; --danger-dim: #f6dede; --warn: #b8791a; --warn-dim: #f7e6c9;
+    --gray-dim: #e9e9e9; --shadow: 0 1px 3px rgba(20,30,20,0.06), 0 1px 2px rgba(20,30,20,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#161815; --card:#202320; --text:#eef0ec; --text-dim:#a3a89e; --border:#333630;
+      --accent:#6bb87c; --accent-dim:#2a3d2c; --accent-text:#10130f; --danger:#e08080;
+      --danger-dim:#3a2626; --warn:#e0ac54; --warn-dim:#3a2f1a; --gray-dim:#2c2f2b;
+      --shadow:0 1px 3px rgba(0,0,0,0.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#161815; --card:#202320; --text:#eef0ec; --text-dim:#a3a89e; --border:#333630;
+    --accent:#6bb87c; --accent-dim:#2a3d2c; --accent-text:#10130f; --danger:#e08080;
+    --danger-dim:#3a2626; --warn:#e0ac54; --warn-dim:#3a2f1a; --gray-dim:#2c2f2b;
+    --shadow:0 1px 3px rgba(0,0,0,0.3);
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif; padding-bottom:60px; }
+  .topbar { background:var(--accent); color:var(--accent-text); padding:16px 18px; }
+  .topbar h1 { margin:0; font-size:1.2rem; }
+  .tabs { display:flex; gap:4px; overflow-x:auto; background:var(--card); border-bottom:1px solid var(--border); padding:0 10px; position:sticky; top:0; z-index:10; }
+  .tab-btn { flex-shrink:0; padding:12px 12px; background:none; border:none; color:var(--text-dim); font-size:0.84rem; font-weight:600; cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap; }
+  .tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+  .page { max-width:980px; margin:0 auto; padding:18px 14px; }
+  .section { display:none; }
+  .section.active { display:block; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:14px; box-shadow:var(--shadow); }
+  .card h2 { font-size:1rem; margin:0 0 12px; }
+  .card h3 { font-size:0.88rem; margin:14px 0 8px; color:var(--text-dim); }
+  label { font-size:0.8rem; color:var(--text-dim); display:block; margin-bottom:4px; }
+  input[type=text], input[type=number], input[type=email], input[type=month], select, textarea {
+    width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px;
+    background:var(--bg); color:var(--text); font-size:0.9rem; margin-bottom:10px; font-family:inherit;
+  }
+  textarea { resize:vertical; min-height:70px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:120px; }
+  button { background:var(--accent); color:var(--accent-text); border:none; padding:8px 14px; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; }
+  button.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  button.ghost { background:transparent; color:var(--text-dim); border:1px solid var(--border); font-weight:400; padding:5px 9px; font-size:0.76rem; }
+  button.small { padding:5px 10px; font-size:0.76rem; }
+  button:disabled { opacity:0.5; cursor:not-allowed; }
+  table { width:100%; border-collapse:collapse; font-size:0.84rem; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--text-dim); font-weight:600; font-size:0.76rem; }
+  .tbl-wrap { overflow-x:auto; }
+  .muted { color:var(--text-dim); font-size:0.8rem; }
+  .empty-state { color:var(--text-dim); font-size:0.85rem; padding:14px 0; text-align:center; }
+  .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px; font-size:0.82rem; border:1px solid var(--border); background:var(--bg); cursor:pointer; margin:0 6px 6px 0; }
+  .chip.active { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
+  .chip .x { color:var(--danger); font-weight:bold; margin-left:2px; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:0.74rem; font-weight:600; }
+  .badge-pending { background:var(--warn-dim); color:var(--warn); }
+  .badge-processing { background:var(--accent-dim); color:var(--accent); }
+  .badge-shipped { background:var(--gray-dim); color:var(--text-dim); }
+  .badge-cancelled { background:var(--danger-dim); color:var(--danger); }
+  .badge-low { background:var(--danger-dim); color:var(--danger); }
+  .badge-off { background:var(--gray-dim); color:var(--text-dim); }
+  .product-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .product-item:last-child { border-bottom:none; }
+  .product-info { flex:1; min-width:160px; }
+  .product-info .name { font-weight:600; font-size:0.92rem; }
+  .product-info .meta { color:var(--text-dim); font-size:0.78rem; }
+  .qty-input { width:60px !important; margin-bottom:0 !important; text-align:center; }
+  .switch { position:relative; display:inline-block; width:40px; height:22px; flex-shrink:0; }
+  .switch input { opacity:0; width:0; height:0; }
+  .slider { position:absolute; cursor:pointer; inset:0; background-color:var(--gray-dim); transition:.2s; border-radius:22px; }
+  .slider:before { position:absolute; content:""; height:16px; width:16px; left:3px; bottom:3px; background-color:white; transition:.2s; border-radius:50%; }
+  input:checked + .slider { background-color:var(--accent); }
+  input:checked + .slider:before { transform:translateX(18px); }
+  .cart-group { border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:10px; }
+  .cart-group h4 { margin:0 0 8px; font-size:0.88rem; }
+  .cart-row { display:flex; justify-content:space-between; align-items:center; font-size:0.84rem; padding:4px 0; }
+  .cart-row .x { color:var(--danger); cursor:pointer; padding:0 6px; font-weight:bold; background:none; border:none; }
+  .total-line { display:flex; justify-content:space-between; font-weight:700; padding-top:8px; margin-top:6px; border-top:1px solid var(--border); }
+  .grand-total { font-size:1.1rem; font-weight:700; text-align:right; margin:10px 0; }
+  .toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-bottom:14px; }
+  .toolbar > div { flex:1; min-width:120px; }
+  .err { color:var(--danger); font-size:0.8rem; margin:-4px 0 10px; }
+  .expand-row td { background:var(--bg); font-size:0.8rem; }
+  .footer-note { text-align:center; color:var(--text-dim); font-size:0.75rem; margin-top:24px; }
+  .vendor-select-row { display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  .bulk-bar { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  details.import-box summary { cursor:pointer; color:var(--accent); font-size:0.85rem; font-weight:600; margin-bottom:8px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🏪 ABCD 門市訂貨管理</h1>
+  <div id="syncStatus" style="font-size:0.75rem; opacity:0.85; margin-top:4px;">連線中…</div>
+</div>
+<div class="tabs">
+  <button class="tab-btn active" data-tab="vendors">供應商</button>
+  <button class="tab-btn" data-tab="stores">門市</button>
+  <button class="tab-btn" data-tab="products">商品</button>
+  <button class="tab-btn" data-tab="orderers">訂貨人</button>
+  <button class="tab-btn" data-tab="order">訂貨賣場</button>
+  <button class="tab-btn" data-tab="orders">所有訂單</button>
+  <button class="tab-btn" data-tab="accounts">帳款處理</button>
+  <button class="tab-btn" data-tab="settings">設定</button>
+</div>
+
+<div class="page">
+
+  <!-- 供應商管理 -->
+  <div class="section active" id="section-vendors">
+    <div class="card">
+      <h2>新增供應商</h2>
+      <div class="row">
+        <div><label>供應商名稱</label><input type="text" id="vName" placeholder="例如：雞蛋商"></div>
+        <div><label>聯絡人</label><input type="text" id="vContact" placeholder="例如：陳老闆"></div>
+      </div>
+      <div class="row">
+        <div><label>聯絡電話</label><input type="text" id="vPhone" placeholder="例如：0900000000"></div>
+        <div><label>Email（選填）</label><input type="email" id="vEmail" placeholder="例如：egg@mail.com"></div>
+      </div>
+      <button id="addVendorBtn">新增供應商</button>
+    </div>
+    <div class="card">
+      <h2>供應商清單</h2>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>供應商名稱</th><th>聯絡人</th><th>電話</th><th>Email</th><th></th></tr></thead>
+        <tbody id="vendorRows"></tbody></table>
+      </div>
+      <p class="empty-state" id="vendorEmpty" style="display:none;">還沒有供應商，先在上面新增一個吧。</p>
+    </div>
+  </div>
+
+  <!-- 門市管理 -->
+  <div class="section" id="section-stores">
+    <div class="card">
+      <h2>新增門市</h2>
+      <div class="row">
+        <div><label>門市名稱</label><input type="text" id="sName" placeholder="例如：A店"></div>
+        <div><label>收貨人姓名</label><input type="text" id="sContact" placeholder="例如：林店長"></div>
+        <div><label>聯絡電話</label><input type="text" id="sPhone" placeholder="例如：0211111111"></div>
+      </div>
+      <button id="addStoreBtn">新增門市</button>
+    </div>
+    <div class="card">
+      <h2>門市清單</h2>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>門市名稱</th><th>收貨人</th><th>電話</th><th></th></tr></thead>
+        <tbody id="storeRows"></tbody></table>
+      </div>
+      <p class="empty-state" id="storeEmpty" style="display:none;"></p>
+    </div>
+  </div>
+
+  <!-- 商品管理 -->
+  <div class="section" id="section-products">
+    <div class="card">
+      <h2>選擇供應商來管理類別與商品</h2>
+      <select id="productVendorSelect"></select>
+      <div id="noVendorMsg" class="empty-state" style="display:none;">請先到「供應商」新增至少一家供應商。</div>
+      <div id="productManageBox" style="display:none;">
+
+        <h3>類別</h3>
+        <div id="categoryChipsManage"></div>
+        <div class="row" style="margin-top:4px;">
+          <div><input type="text" id="newCategoryName" placeholder="輸入新類別名稱，例如：蔬果"></div>
+          <div style="flex:0 0 auto;"><button type="button" id="addCategoryBtn">新增類別</button></div>
+        </div>
+
+        <h3>新增單一商品</h3>
+        <div class="row">
+          <div><label>類別</label><select id="pCategorySelect"></select></div>
+          <div><label>商品名稱</label><input type="text" id="pName" placeholder="例如：番茄"></div>
+        </div>
+        <div class="row">
+          <div><label>單位</label><input type="text" id="pUnit" placeholder="例如：1公斤"></div>
+          <div><label>單價</label><input type="number" id="pPrice" min="0" step="1" placeholder="0"></div>
+        </div>
+        <div class="row">
+          <div><label>當前庫存（選填）</label><input type="number" id="pStock" min="0" step="1" placeholder="不填則不追蹤庫存"></div>
+          <div><label>安全庫存（選填）</label><input type="number" id="pSafety" min="0" step="1" placeholder="低於此數量會提醒"></div>
+        </div>
+        <button id="addProductBtn">新增商品</button>
+
+        <details class="import-box" style="margin-top:14px;">
+          <summary>匯入多筆商品（貼上多行文字）</summary>
+          <p class="muted">每行格式：類別,商品名稱,單位,單價,庫存(選填),安全庫存(選填)。例如：蔬果,番茄,1公斤,40,10,5</p>
+          <textarea id="bulkImportText" placeholder="蔬果,番茄,1公斤,40,10,5&#10;蔬果,洋蔥,1斤,60"></textarea>
+          <button type="button" class="secondary" id="bulkImportBtn">匯入</button>
+          <p class="err" id="bulkImportErr" style="display:none;"></p>
+        </details>
+      </div>
+    </div>
+
+    <div class="card" id="productListCard" style="display:none;">
+      <h2>商品清單</h2>
+      <div class="bulk-bar">
+        <button type="button" class="secondary small" id="allOnShelfBtn">本供應商全部上架</button>
+        <button type="button" class="secondary small" id="allOffShelfBtn">本供應商全部下架</button>
+      </div>
+      <div id="productListBody"></div>
+      <p class="empty-state" id="productEmpty" style="display:none;">這家供應商還沒有商品，在上面新增看看。</p>
+    </div>
+  </div>
+
+  <!-- 訂貨人管理 -->
+  <div class="section" id="section-orderers">
+    <div class="card">
+      <h2>選擇門市</h2>
+      <select id="ordererStoreSelect"></select>
+      <div id="noStoreMsg" class="empty-state" style="display:none;">請先到「門市」新增至少一間門市。</div>
+      <div id="ordererManageBox" style="display:none;">
+        <h3>新增訂貨人</h3>
+        <div class="row">
+          <div><label>姓名</label><input type="text" id="oName" placeholder="例如：林店長"></div>
+          <div><label>手機號碼</label><input type="text" id="oPhone" placeholder="例如：0912333444"></div>
+          <div><label>Email（選填）</label><input type="email" id="oEmail" placeholder="選填"></div>
+        </div>
+        <button id="addOrdererBtn">新增訂貨人</button>
+      </div>
+    </div>
+    <div class="card" id="ordererListCard" style="display:none;">
+      <h2>訂貨人名單</h2>
+      <p class="muted">記錄這間門市有哪些人可以負責叫貨，方便日後追蹤是誰下的單。</p>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>姓名</th><th>手機號碼</th><th>Email</th><th></th></tr></thead>
+        <tbody id="ordererRows"></tbody></table>
+      </div>
+      <p class="empty-state" id="ordererEmpty" style="display:none;">這間門市還沒有訂貨人，在上面新增看看。</p>
+    </div>
+  </div>
+
+  <!-- 訂貨賣場 -->
+  <div class="section" id="section-order">
+    <div class="card">
+      <div class="vendor-select-row">
+        <div style="flex:1; min-width:160px;">
+          <label>訂貨門市</label>
+          <select id="orderStoreSelect"></select>
+        </div>
+      </div>
+      <div id="announcementBox" class="muted" style="display:none; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:10px; white-space:pre-wrap;"></div>
+      <div id="vendorChips"></div>
+      <div id="categoryChips" style="margin-top:6px;"></div>
+    </div>
+    <div class="card" id="productBrowseCard">
+      <h2>商品</h2>
+      <div id="browseList"></div>
+      <p class="empty-state" id="browseEmpty" style="display:none;"></p>
+    </div>
+    <div class="card">
+      <h2>購物車</h2>
+      <div id="cartBox"></div>
+      <p class="empty-state" id="cartEmpty" style="display:none;">購物車是空的，先在上面加入商品。</p>
+      <div class="grand-total" id="grandTotal" style="display:none;"></div>
+      <button id="submitOrderBtn" style="display:none;">送出訂單</button>
+      <p class="err" id="orderErr" style="display:none;"></p>
+    </div>
+  </div>
+
+  <!-- 所有訂單 -->
+  <div class="section" id="section-orders">
+    <div class="card">
+      <div class="toolbar">
+        <div><label>月份</label><input type="month" id="filterMonth"></div>
+        <div><label>門市</label><select id="filterOrderStore"><option value="">全部門市</option></select></div>
+        <div><label>供應商</label><select id="filterOrderVendor"><option value="">全部供應商</option></select></div>
+        <div><label>配送狀態</label>
+          <select id="filterOrderStatus">
+            <option value="">全部狀態</option><option value="未處理">未處理</option>
+            <option value="處理中">處理中</option><option value="已出貨">已出貨</option>
+            <option value="已取消">已取消</option>
+          </select>
+        </div>
+        <div><button type="button" class="secondary" id="exportOrdersBtn">匯出 CSV</button></div>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>訂單時間</th><th>門市</th><th>供應商</th><th>配送狀態</th><th>運費</th><th>總計</th><th></th></tr></thead>
+        <tbody id="orderListRows"></tbody></table>
+      </div>
+      <p class="empty-state" id="orderListEmpty" style="display:none;">這個篩選條件下還沒有訂單。</p>
+    </div>
+  </div>
+
+  <!-- 帳款處理 -->
+  <div class="section" id="section-accounts">
+    <div class="card">
+      <p class="muted" style="margin-top:0;">邏輯跟 iCHEF 一樣：門市的貨款統一算給你（應收），你再依實際出貨的供應商付款給對方（應付）。金額是根據「所有訂單」自動加總（已取消的訂單不列入），你只要標記誰已經付款、誰還沒。</p>
+      <label>結算月份</label>
+      <input type="month" id="acctMonth" style="max-width:200px;">
+    </div>
+
+    <div class="card">
+      <h2>應收帳款（各門市欠你的錢）</h2>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>門市</th><th>本月應付總額</th><th>狀態</th><th></th></tr></thead>
+        <tbody id="receivableRows"></tbody></table>
+      </div>
+      <p class="empty-state" id="receivableEmpty" style="display:none;">這個月還沒有任何門市的訂單。</p>
+    </div>
+
+    <div class="card">
+      <h2>應付帳款（你欠各供應商的錢）</h2>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>供應商</th><th>本月應付總額</th><th>狀態</th><th></th></tr></thead>
+        <tbody id="payableRows"></tbody></table>
+      </div>
+      <p class="empty-state" id="payableEmpty" style="display:none;">這個月還沒有跟任何供應商叫貨。</p>
+      <p class="muted" style="margin-top:10px;">小提醒：如果總部（你）自己就是某些商品的供應商（例如自己中央廚房出貨），可以在「供應商」分頁新增一個叫「總部」的供應商，這樣那些商品的訂單也會單獨列在這裡方便對帳，但不會產生真的要付款給別人的義務。</p>
+    </div>
+  </div>
+
+  <!-- 設定 -->
+  <div class="section" id="section-settings">
+    <div class="card">
+      <h2>總部基本資訊</h2>
+      <div class="row">
+        <div><label>品牌名稱</label><input type="text" id="hqBrand" placeholder="例如：OO餐飲"></div>
+        <div><label>聯絡人</label><input type="text" id="hqContact" placeholder="例如：老闆"></div>
+      </div>
+      <div class="row">
+        <div><label>聯絡電話</label><input type="text" id="hqPhone" placeholder="例如：0912345678"></div>
+        <div><label>Email</label><input type="email" id="hqEmail" placeholder="選填"></div>
+      </div>
+      <label>地址</label>
+      <input type="text" id="hqAddress" placeholder="選填">
+      <button id="saveHqBtn">儲存總部資訊</button>
+    </div>
+    <div class="card">
+      <h2>訂貨賣場公告</h2>
+      <p class="muted">會顯示在「訂貨賣場」頁面最上方，例如叫貨截止時間、結帳規則等提醒。</p>
+      <textarea id="hqAnnouncement" placeholder="例如：每月底總部會與門市店長結帳，訂貨相關疑問請找老闆。"></textarea>
+      <button id="saveAnnouncementBtn">儲存公告</button>
+    </div>
+    <p class="muted" id="settingsSavedMsg" style="display:none;"></p>
+  </div>
+
+  <p class="footer-note">內部訂貨管理工具，僅供叫貨與進度追蹤參考，不會自動產生發票或報稅資料。</p>
+</div>
+
+<script>
+/* =========================================================
+   資料層：改用你自己的 Firebase Realtime Database (REST API)
+   不再需要透過 Claude 的儲存服務，這個檔案可以放到任何地方開啟。
+
+   需要你在 Firebase 主控台 -> Realtime Database -> 規則(Rules)
+   設定成至少讓這個網址可以讀寫，例如（測試用，正式使用建議加更嚴謹的規則）：
+   {
+     "rules": { ".read": true, ".write": true }
+   }
+   ========================================================= */
+const FIREBASE_URL = "https://restaurant-management-b325b-default-rtdb.asia-southeast1.firebasedatabase.app";
+const POLL_INTERVAL_MS = 5000;
+
+async function fbGet(path){
+  const res = await fetch(`${FIREBASE_URL}/${path}.json`);
+  if (!res.ok) throw new Error("Firebase GET 失敗：" + res.status);
+  return await res.json();
+}
+async function fbPut(path, data){
+  const res = await fetch(`${FIREBASE_URL}/${path}.json`, { method:"PUT", body: JSON.stringify(data) });
+  if (!res.ok) throw new Error("Firebase PUT 失敗：" + res.status);
+  return await res.json();
+}
+async function fbPatch(path, data){
+  const res = await fetch(`${FIREBASE_URL}/${path}.json`, { method:"PATCH", body: JSON.stringify(data) });
+  if (!res.ok) throw new Error("Firebase PATCH 失敗：" + res.status);
+  return await res.json();
+}
+async function fbPost(path, data){
+  const res = await fetch(`${FIREBASE_URL}/${path}.json`, { method:"POST", body: JSON.stringify(data) });
+  if (!res.ok) throw new Error("Firebase POST 失敗：" + res.status);
+  return await res.json(); // { name: "-NewKey..." }
+}
+async function fbDelete(path){
+  const res = await fetch(`${FIREBASE_URL}/${path}.json`, { method:"DELETE" });
+  if (!res.ok) throw new Error("Firebase DELETE 失敗：" + res.status);
+  return true;
+}
+function objToArray(obj){
+  if (!obj || typeof obj !== "object") return [];
+  return Object.keys(obj).map(k => ({ id:k, ...obj[k] }));
+}
+function byCreatedAtAsc(a,b){ return (a.createdAt||0) - (b.createdAt||0); }
+function byCreatedAtDesc(a,b){ return (b.createdAt||0) - (a.createdAt||0); }
+
+let vendors = [], stores = [], categories = [], products = [], orderers = [], orders = [], settlements = [];
+let hqSettings = {};
+let cart = []; // {productId, vendorId, name, unit, price, qty}
+let shippingFees = {}; // vendorId -> fee
+let currentVendorFilter = "";
+let currentCategoryFilter = "";
+let expandedOrderId = null;
+
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function fmtMoney(n){ return "$" + Math.round(n||0).toLocaleString("zh-TW"); }
+function vendorName(id){ const v = vendors.find(x=>x.id===id); return v ? v.name : "（已刪除）"; }
+function storeName(id){ const s = stores.find(x=>x.id===id); return s ? s.name : "（已刪除）"; }
+function todayMonth(){ return new Date().toISOString().slice(0,7); }
+
+function setSyncStatus(ok, msg){
+  const el = document.getElementById("syncStatus");
+  if (!el) return;
+  if (ok){
+    const t = new Date();
+    el.textContent = "已同步 · " + String(t.getHours()).padStart(2,"0") + ":" + String(t.getMinutes()).padStart(2,"0") + ":" + String(t.getSeconds()).padStart(2,"0");
+    el.style.color = "";
+  } else {
+    el.textContent = "⚠️ 連線失敗：" + (msg || "無法連上 Firebase，請檢查網址與規則設定");
+    el.style.color = "#ffe1e1";
+  }
+}
+
+async function fetchAll(){
+  try{
+    const data = await fbGet("") || {};
+    vendors = objToArray(data.vendors).sort(byCreatedAtAsc);
+    stores = objToArray(data.stores).sort(byCreatedAtAsc);
+    categories = objToArray(data.categories).sort(byCreatedAtAsc);
+    products = objToArray(data.products).sort(byCreatedAtAsc);
+    orderers = objToArray(data.orderers).sort(byCreatedAtAsc);
+    orders = objToArray(data.orders).sort(byCreatedAtDesc);
+    settlements = objToArray(data.settlements);
+    hqSettings = (data.meta && data.meta.hq) || {};
+    renderAllViews();
+    setSyncStatus(true);
+  }catch(e){
+    console.error(e);
+    setSyncStatus(false, e.message);
+  }
+}
+function renderAllViews(){
+  renderVendors(); renderProductVendorSelect(); renderVendorChips(); renderFilterVendorSelect();
+  renderStores(); renderOrderStoreSelect(); renderFilterStoreSelect(); renderOrdererStoreSelect();
+  renderCategoryChipsManage(); renderCategorySelectForAdd();
+  renderProductManageList(); renderCategoryChips(); renderBrowseList();
+  renderOrdererList();
+  renderOrderList();
+  renderHqSettings(); renderAnnouncement();
+  renderAccounts();
+}
+
+async function init(){
+  document.getElementById("filterMonth").value = todayMonth();
+  document.getElementById("acctMonth").value = todayMonth();
+
+  document.querySelectorAll(".tab-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+      document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("section-"+btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  document.getElementById("addVendorBtn").onclick = addVendor;
+  document.getElementById("addStoreBtn").onclick = addStore;
+  document.getElementById("productVendorSelect").onchange = ()=>{ renderCategoryChipsManage(); renderCategorySelectForAdd(); renderProductManageList(); };
+  document.getElementById("addCategoryBtn").onclick = addCategory;
+  document.getElementById("addProductBtn").onclick = addProduct;
+  document.getElementById("bulkImportBtn").onclick = bulkImportProducts;
+  document.getElementById("allOnShelfBtn").onclick = ()=>bulkSetShelf(true);
+  document.getElementById("allOffShelfBtn").onclick = ()=>bulkSetShelf(false);
+  document.getElementById("ordererStoreSelect").onchange = renderOrdererList;
+  document.getElementById("addOrdererBtn").onclick = addOrderer;
+  document.getElementById("submitOrderBtn").onclick = submitOrder;
+  document.getElementById("exportOrdersBtn").onclick = exportOrdersCsv;
+  document.getElementById("filterMonth").onchange = renderOrderList;
+  document.getElementById("filterOrderStore").onchange = renderOrderList;
+  document.getElementById("filterOrderVendor").onchange = renderOrderList;
+  document.getElementById("filterOrderStatus").onchange = renderOrderList;
+  document.getElementById("saveHqBtn").onclick = saveHqInfo;
+  document.getElementById("saveAnnouncementBtn").onclick = saveAnnouncement;
+  document.getElementById("acctMonth").onchange = renderAccounts;
+
+  await fetchAll();
+  await seedStoresIfNeeded();
+  await fetchAll();
+
+  setInterval(fetchAll, POLL_INTERVAL_MS);
+}
+
+async function seedStoresIfNeeded(){
+  try{
+    const cfg = await fbGet("meta/config");
+    if (!cfg || !cfg.storesSeeded){
+      const names = ["A店","B店","C店","D店"];
+      for (const n of names){
+        await fbPost("stores", { name:n, contact:"", phone:"", createdAt: Date.now() });
+      }
+      await fbPut("meta/config", { storesSeeded:true });
+    }
+  }catch(e){ console.error("seed error", e); }
+}
+
+/* ---------- 供應商 ---------- */
+async function addVendor(){
+  const name = document.getElementById("vName").value.trim();
+  const contact = document.getElementById("vContact").value.trim();
+  const phone = document.getElementById("vPhone").value.trim();
+  const email = document.getElementById("vEmail").value.trim();
+  if (!name) return;
+  const btn = document.getElementById("addVendorBtn"); btn.disabled = true;
+  try{
+    await fbPost("vendors", { name, contact, phone, email, createdAt: Date.now() });
+    ["vName","vContact","vPhone","vEmail"].forEach(id=>document.getElementById(id).value="");
+    await fetchAll();
+  }catch(e){ alert("新增失敗：" + e.message); }
+  btn.disabled = false;
+}
+async function deleteVendor(id){
+  if (!confirm("確定刪除這家供應商？（該供應商的商品與歷史訂單不會被刪除）")) return;
+  try{ await fbDelete("vendors/"+id); await fetchAll(); }catch(e){ alert("刪除失敗：" + e.message); }
+}
+function renderVendors(){
+  const rows = document.getElementById("vendorRows");
+  const empty = document.getElementById("vendorEmpty");
+  rows.innerHTML = "";
+  empty.style.display = vendors.length ? "none" : "block";
+  vendors.forEach(v=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${esc(v.name)}</td><td>${esc(v.contact||"-")}</td><td>${esc(v.phone||"-")}</td><td>${esc(v.email||"-")}</td>
+      <td><button class="ghost" data-id="${v.id}">刪除</button></td>`;
+    tr.querySelector("button").onclick = ()=>deleteVendor(v.id);
+    rows.appendChild(tr);
+  });
+}
+
+/* ---------- 門市 ---------- */
+async function addStore(){
+  const name = document.getElementById("sName").value.trim();
+  const contact = document.getElementById("sContact").value.trim();
+  const phone = document.getElementById("sPhone").value.trim();
+  if (!name) return;
+  const btn = document.getElementById("addStoreBtn"); btn.disabled = true;
+  try{
+    await fbPost("stores", { name, contact, phone, createdAt: Date.now() });
+    ["sName","sContact","sPhone"].forEach(id=>document.getElementById(id).value="");
+    await fetchAll();
+  }catch(e){ alert("新增失敗：" + e.message); }
+  btn.disabled = false;
+}
+async function deleteStore(id){
+  if (!confirm("確定刪除這間門市？（歷史訂單不會被刪除）")) return;
+  try{ await fbDelete("stores/"+id); await fetchAll(); }catch(e){ alert("刪除失敗：" + e.message); }
+}
+function renderStores(){
+  const rows = document.getElementById("storeRows");
+  const empty = document.getElementById("storeEmpty");
+  rows.innerHTML = "";
+  empty.style.display = stores.length ? "none" : "block";
+  stores.forEach(s=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${esc(s.name)}</td><td>${esc(s.contact||"-")}</td><td>${esc(s.phone||"-")}</td>
+      <td><button class="ghost" data-id="${s.id}">刪除</button></td>`;
+    tr.querySelector("button").onclick = ()=>deleteStore(s.id);
+    rows.appendChild(tr);
+  });
+}
+
+/* ---------- 類別 ---------- */
+function renderProductVendorSelect(){
+  const sel = document.getElementById("productVendorSelect");
+  const cur = sel.value;
+  sel.innerHTML = vendors.map(v=>`<option value="${v.id}">${esc(v.name)}</option>`).join("");
+  if (vendors.some(v=>v.id===cur)) sel.value = cur;
+  const noVendor = document.getElementById("noVendorMsg");
+  const manageBox = document.getElementById("productManageBox");
+  noVendor.style.display = vendors.length ? "none" : "block";
+  manageBox.style.display = vendors.length ? "block" : "none";
+  document.getElementById("productListCard").style.display = vendors.length ? "block" : "none";
+}
+async function addCategory(){
+  const vendorId = document.getElementById("productVendorSelect").value;
+  const name = document.getElementById("newCategoryName").value.trim();
+  if (!vendorId || !name) return;
+  try{
+    await fbPost("categories", { vendorId, name, createdAt: Date.now() });
+    document.getElementById("newCategoryName").value = "";
+    await fetchAll();
+  }catch(e){ alert("新增失敗：" + e.message); }
+}
+async function deleteCategory(id){
+  if (!confirm("確定刪除這個類別？（該類別下的商品不會被刪除，但會變成未分類）")) return;
+  try{ await fbDelete("categories/"+id); await fetchAll(); }catch(e){ alert("刪除失敗：" + e.message); }
+}
+function renderCategoryChipsManage(){
+  const vendorId = document.getElementById("productVendorSelect").value;
+  const box = document.getElementById("categoryChipsManage");
+  const list = categories.filter(c=>c.vendorId===vendorId);
+  box.innerHTML = "";
+  if (!list.length){ box.innerHTML = '<p class="muted">還沒有類別，先在下面新增一個。</p>'; return; }
+  list.forEach(c=>{
+    const el = document.createElement("span");
+    el.className = "chip";
+    el.innerHTML = `${esc(c.name)} <span class="x" data-id="${c.id}">×</span>`;
+    el.querySelector(".x").onclick = ()=>deleteCategory(c.id);
+    box.appendChild(el);
+  });
+}
+function renderCategorySelectForAdd(){
+  const vendorId = document.getElementById("productVendorSelect").value;
+  const sel = document.getElementById("pCategorySelect");
+  const list = categories.filter(c=>c.vendorId===vendorId);
+  sel.innerHTML = list.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");
+}
+function categoryName(id){ const c = categories.find(x=>x.id===id); return c ? c.name : "未分類"; }
+
+/* ---------- 商品 ---------- */
+async function addProduct(){
+  const vendorId = document.getElementById("productVendorSelect").value;
+  const categoryId = document.getElementById("pCategorySelect").value;
+  const name = document.getElementById("pName").value.trim();
+  const unit = document.getElementById("pUnit").value.trim();
+  const price = parseFloat(document.getElementById("pPrice").value);
+  const stockVal = document.getElementById("pStock").value;
+  const safetyVal = document.getElementById("pSafety").value;
+  if (!vendorId || !name || !price || price < 0) { alert("請填寫商品名稱與單價"); return; }
+  if (!categoryId) { alert("請先新增並選擇一個類別"); return; }
+  const btn = document.getElementById("addProductBtn"); btn.disabled = true;
+  try{
+    await fbPost("products", {
+      vendorId, categoryId, name, unit, price,
+      stock: stockVal === "" ? null : parseFloat(stockVal),
+      safetyStock: safetyVal === "" ? null : parseFloat(safetyVal),
+      onShelf: true, createdAt: Date.now()
+    });
+    ["pName","pUnit","pPrice","pStock","pSafety"].forEach(id=>document.getElementById(id).value="");
+    await fetchAll();
+  }catch(e){ alert("新增失敗：" + e.message); }
+  btn.disabled = false;
+}
+async function bulkImportProducts(){
+  const vendorId = document.getElementById("productVendorSelect").value;
+  const errEl = document.getElementById("bulkImportErr");
+  errEl.style.display = "none";
+  const text = document.getElementById("bulkImportText").value.trim();
+  if (!vendorId || !text) return;
+  const lines = text.split("\n").map(l=>l.trim()).filter(Boolean);
+  const btn = document.getElementById("bulkImportBtn"); btn.disabled = true;
+  try{
+    for (const line of lines){
+      const parts = line.split(",").map(p=>p.trim());
+      const [catName, name, unit, priceStr, stockStr, safetyStr] = parts;
+      if (!catName || !name || !priceStr) continue;
+      let cat = categories.find(c=>c.vendorId===vendorId && c.name===catName);
+      let categoryId;
+      if (cat) { categoryId = cat.id; }
+      else {
+        const ref = await fbPost("categories", { vendorId, name: catName, createdAt: Date.now() });
+        categoryId = ref.name;
+        categories.push({ id: categoryId, vendorId, name: catName, createdAt: Date.now() });
+      }
+      await fbPost("products", {
+        vendorId, categoryId, name, unit: unit||"",
+        price: parseFloat(priceStr) || 0,
+        stock: stockStr ? parseFloat(stockStr) : null,
+        safetyStock: safetyStr ? parseFloat(safetyStr) : null,
+        onShelf: true, createdAt: Date.now()
+      });
+    }
+    document.getElementById("bulkImportText").value = "";
+    await fetchAll();
+  }catch(e){
+    errEl.textContent = "匯入過程發生錯誤，部分資料可能已匯入：" + e.message;
+    errEl.style.display = "block";
+  }
+  btn.disabled = false;
+}
+async function deleteProduct(id){
+  if (!confirm("確定刪除這項商品？")) return;
+  try{ await fbDelete("products/"+id); await fetchAll(); }catch(e){ alert("刪除失敗：" + e.message); }
+}
+async function toggleShelf(id, val){
+  try{ await fbPatch("products/"+id, { onShelf: val }); await fetchAll(); }catch(e){ alert("更新失敗：" + e.message); }
+}
+async function bulkSetShelf(val){
+  const vendorId = document.getElementById("productVendorSelect").value;
+  const list = products.filter(p=>p.vendorId===vendorId);
+  for (const p of list){
+    try{ await fbPatch("products/"+p.id, { onShelf: val }); }catch(e){}
+  }
+  await fetchAll();
+}
+function renderProductManageList(){
+  const vendorId = document.getElementById("productVendorSelect").value;
+  const box = document.getElementById("productListBody");
+  const empty = document.getElementById("productEmpty");
+  const list = products.filter(p=>p.vendorId === vendorId);
+  box.innerHTML = "";
+  empty.style.display = list.length ? "none" : "block";
+  const byCat = {};
+  list.forEach(p=>{ const key = p.categoryId || "none"; (byCat[key] = byCat[key]||[]).push(p); });
+  Object.keys(byCat).forEach(catId=>{
+    const h = document.createElement("div");
+    h.innerHTML = `<div class="muted" style="margin:10px 0 4px; font-weight:600;">${esc(catId==="none"?"未分類":categoryName(catId))}</div>`;
+    box.appendChild(h);
+    byCat[catId].forEach(p=>{
+      const row = document.createElement("div");
+      row.className = "product-item";
+      const low = (p.stock!=null && p.safetyStock!=null && p.stock <= p.safetyStock);
+      const stockStr = p.stock!=null ? `庫存 ${p.stock}${p.safetyStock!=null ? " / 安全 "+p.safetyStock : ""}` : "";
+      row.innerHTML = `
+        <label class="switch"><input type="checkbox" ${p.onShelf!==false?"checked":""} data-id="${p.id}"><span class="slider"></span></label>
+        <div class="product-info">
+          <div class="name">${esc(p.name)} ${low?'<span class="badge badge-low">庫存偏低</span>':''} ${p.onShelf===false?'<span class="badge badge-off">已下架</span>':''}</div>
+          <div class="meta">${esc(p.unit||"")} · ${fmtMoney(p.price)} ${stockStr?" · "+esc(stockStr):""}</div>
+        </div>
+        <button class="ghost" data-del="${p.id}">刪除</button>`;
+      row.querySelector("input[type=checkbox]").onchange = (e)=>toggleShelf(p.id, e.target.checked);
+      row.querySelector("[data-del]").onclick = ()=>deleteProduct(p.id);
+      box.appendChild(row);
+    });
+  });
+}
+
+/* ---------- 訂貨人 ---------- */
+function renderOrdererStoreSelect(){
+  const sel = document.getElementById("ordererStoreSelect");
+  const cur = sel.value;
+  sel.innerHTML = stores.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("");
+  if (stores.some(s=>s.id===cur)) sel.value = cur;
+  const noStoreMsg = document.getElementById("noStoreMsg");
+  const box = document.getElementById("ordererManageBox");
+  noStoreMsg.style.display = stores.length ? "none" : "block";
+  box.style.display = stores.length ? "block" : "none";
+  document.getElementById("ordererListCard").style.display = stores.length ? "block" : "none";
+}
+async function addOrderer(){
+  const storeId = document.getElementById("ordererStoreSelect").value;
+  const name = document.getElementById("oName").value.trim();
+  const phone = document.getElementById("oPhone").value.trim();
+  const email = document.getElementById("oEmail").value.trim();
+  if (!storeId || !name) { alert("請填寫姓名"); return; }
+  const btn = document.getElementById("addOrdererBtn"); btn.disabled = true;
+  try{
+    await fbPost("orderers", { storeId, name, phone, email, createdAt: Date.now() });
+    ["oName","oPhone","oEmail"].forEach(id=>document.getElementById(id).value="");
+    await fetchAll();
+  }catch(e){ alert("新增失敗：" + e.message); }
+  btn.disabled = false;
+}
+async function deleteOrderer(id){
+  if (!confirm("確定刪除這位訂貨人？")) return;
+  try{ await fbDelete("orderers/"+id); await fetchAll(); }catch(e){ alert("刪除失敗：" + e.message); }
+}
+function renderOrdererList(){
+  const storeId = document.getElementById("ordererStoreSelect").value;
+  const rows = document.getElementById("ordererRows");
+  const empty = document.getElementById("ordererEmpty");
+  const list = orderers.filter(o=>o.storeId===storeId);
+  rows.innerHTML = "";
+  empty.style.display = list.length ? "none" : "block";
+  list.forEach(o=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${esc(o.name)}</td><td>${esc(o.phone||"-")}</td><td>${esc(o.email||"-")}</td>
+      <td><button class="ghost" data-id="${o.id}">刪除</button></td>`;
+    tr.querySelector("button").onclick = ()=>deleteOrderer(o.id);
+    rows.appendChild(tr);
+  });
+}
+
+/* ---------- 訂貨賣場 ---------- */
+function renderOrderStoreSelect(){
+  const sel = document.getElementById("orderStoreSelect");
+  const cur = sel.value;
+  sel.innerHTML = stores.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("");
+  if (stores.some(s=>s.id===cur)) sel.value = cur;
+}
+function renderAnnouncement(){
+  const box = document.getElementById("announcementBox");
+  if (hqSettings.announcement){
+    box.style.display = "block";
+    box.textContent = "📢 " + hqSettings.announcement;
+  } else {
+    box.style.display = "none";
+  }
+}
+function renderVendorChips(){
+  const box = document.getElementById("vendorChips");
+  const chips = [{id:"", name:"全部"}, ...vendors.map(v=>({id:v.id,name:v.name}))];
+  box.innerHTML = "";
+  chips.forEach(c=>{
+    const el = document.createElement("span");
+    el.className = "chip" + (currentVendorFilter === c.id ? " active" : "");
+    el.textContent = c.name;
+    el.onclick = ()=>{ currentVendorFilter = c.id; currentCategoryFilter=""; renderVendorChips(); renderCategoryChips(); renderBrowseList(); };
+    box.appendChild(el);
+  });
+}
+function renderCategoryChips(){
+  const box = document.getElementById("categoryChips");
+  const pool = products.filter(p => (!currentVendorFilter || p.vendorId === currentVendorFilter) && p.onShelf !== false);
+  const catIds = [...new Set(pool.map(p=>p.categoryId).filter(Boolean))];
+  box.innerHTML = "";
+  if (!catIds.length) return;
+  const allChip = document.createElement("span");
+  allChip.className = "chip" + (currentCategoryFilter==="" ? " active" : "");
+  allChip.textContent = "全部分類";
+  allChip.onclick = ()=>{ currentCategoryFilter=""; renderCategoryChips(); renderBrowseList(); };
+  box.appendChild(allChip);
+  catIds.forEach(catId=>{
+    const el = document.createElement("span");
+    el.className = "chip" + (currentCategoryFilter === catId ? " active" : "");
+    el.textContent = categoryName(catId);
+    el.onclick = ()=>{ currentCategoryFilter = catId; renderCategoryChips(); renderBrowseList(); };
+    box.appendChild(el);
+  });
+}
+function renderBrowseList(){
+  const box = document.getElementById("browseList");
+  const empty = document.getElementById("browseEmpty");
+  let list = products.filter(p => p.onShelf !== false && (!currentVendorFilter || p.vendorId === currentVendorFilter));
+  if (currentCategoryFilter) list = list.filter(p=>p.categoryId===currentCategoryFilter);
+  box.innerHTML = "";
+  empty.style.display = list.length ? "none" : "block";
+  empty.textContent = products.length ? "這個篩選條件下沒有上架商品。" : "還沒有商品，請先到「商品」新增。";
+  list.forEach(p=>{
+    const low = (p.stock!=null && p.safetyStock!=null && p.stock <= p.safetyStock);
+    const row = document.createElement("div");
+    row.className = "product-item";
+    row.innerHTML = `
+      <div class="product-info"><div class="name">${esc(p.name)} ${low?'<span class="badge badge-low">庫存偏低</span>':''}</div><div class="meta">${esc(vendorName(p.vendorId))} · ${esc(p.unit||"")} · ${fmtMoney(p.price)}</div></div>
+      <input type="number" class="qty-input" min="1" value="1" id="qty-${p.id}">
+      <button class="small" data-id="${p.id}">加入</button>`;
+    row.querySelector("button").onclick = ()=>{
+      const qty = parseInt(document.getElementById("qty-"+p.id).value) || 1;
+      addToCart(p, qty);
+    };
+    box.appendChild(row);
+  });
+}
+function addToCart(p, qty){
+  const existing = cart.find(c=>c.productId===p.id);
+  if (existing) existing.qty += qty;
+  else cart.push({ productId:p.id, vendorId:p.vendorId, name:p.name, unit:p.unit, price:p.price, qty });
+  renderCart();
+}
+function removeFromCart(productId){
+  cart = cart.filter(c=>c.productId !== productId);
+  renderCart();
+}
+function renderCart(){
+  const box = document.getElementById("cartBox");
+  const empty = document.getElementById("cartEmpty");
+  const grandEl = document.getElementById("grandTotal");
+  const submitBtn = document.getElementById("submitOrderBtn");
+  box.innerHTML = "";
+  empty.style.display = cart.length ? "none" : "block";
+  grandEl.style.display = cart.length ? "block" : "none";
+  submitBtn.style.display = cart.length ? "block" : "none";
+  if (!cart.length) return;
+
+  const byVendor = {};
+  cart.forEach(c => { (byVendor[c.vendorId] = byVendor[c.vendorId]||[]).push(c); });
+
+  let grand = 0;
+  Object.keys(byVendor).forEach(vid=>{
+    const items = byVendor[vid];
+    const subtotal = items.reduce((a,c)=>a + c.price*c.qty, 0);
+    const fee = shippingFees[vid] || 0;
+    grand += subtotal + fee;
+    const group = document.createElement("div");
+    group.className = "cart-group";
+    let itemsHtml = items.map(c => `
+      <div class="cart-row">
+        <span>${esc(c.name)} × ${c.qty}</span>
+        <span>${fmtMoney(c.price*c.qty)} <button class="x" data-pid="${c.productId}">×</button></span>
+      </div>`).join("");
+    group.innerHTML = `
+      <h4>${esc(vendorName(vid))}</h4>
+      ${itemsHtml}
+      <div class="row" style="margin-top:8px; align-items:center;">
+        <div style="max-width:140px;"><label>運費</label><input type="number" min="0" step="1" class="fee-input" data-vid="${vid}" value="${shippingFees[vid]||0}"></div>
+      </div>
+      <div class="total-line"><span>小計</span><span>${fmtMoney(subtotal + fee)}</span></div>
+    `;
+    group.querySelectorAll(".x").forEach(btn=>btn.onclick = ()=>removeFromCart(btn.dataset.pid));
+    group.querySelector(".fee-input").addEventListener("input", (e)=>{
+      shippingFees[vid] = parseFloat(e.target.value) || 0;
+      renderCart();
+    });
+    box.appendChild(group);
+  });
+  grandEl.textContent = "合計：" + fmtMoney(grand);
+}
+async function submitOrder(){
+  const errEl = document.getElementById("orderErr");
+  errEl.style.display = "none";
+  const storeId = document.getElementById("orderStoreSelect").value;
+  if (!storeId){ errEl.textContent = "請選擇訂貨門市"; errEl.style.display="block"; return; }
+  if (!cart.length) return;
+  const btn = document.getElementById("submitOrderBtn"); btn.disabled = true;
+  try{
+    const byVendor = {};
+    cart.forEach(c => { (byVendor[c.vendorId] = byVendor[c.vendorId]||[]).push(c); });
+    for (const vid of Object.keys(byVendor)){
+      const items = byVendor[vid];
+      const subtotal = items.reduce((a,c)=>a + c.price*c.qty, 0);
+      const fee = shippingFees[vid] || 0;
+      await fbPost("orders", {
+        storeId, storeName: storeName(storeId),
+        vendorId: vid, vendorName: vendorName(vid),
+        items: items.map(c=>({ productId:c.productId, name:c.name, unit:c.unit, price:c.price, qty:c.qty })),
+        shippingFee: fee, total: subtotal + fee, status: "未處理",
+        createdAt: Date.now()
+      });
+    }
+    cart = []; shippingFees = {};
+    renderCart();
+    await fetchAll();
+    alert("訂單已送出！");
+  }catch(e){
+    errEl.textContent = "送出失敗：" + e.message;
+    errEl.style.display = "block";
+  }
+  btn.disabled = false;
+}
+
+/* ---------- 所有訂單 ---------- */
+function renderFilterStoreSelect(){
+  const sel = document.getElementById("filterOrderStore");
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">全部門市</option>' + stores.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("");
+  sel.value = cur;
+}
+function renderFilterVendorSelect(){
+  const sel = document.getElementById("filterOrderVendor");
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">全部供應商</option>' + vendors.map(v=>`<option value="${v.id}">${esc(v.name)}</option>`).join("");
+  sel.value = cur;
+}
+function badgeClass(status){
+  return { "未處理":"badge-pending", "處理中":"badge-processing", "已出貨":"badge-shipped", "已取消":"badge-cancelled" }[status] || "badge-pending";
+}
+function filteredOrders(){
+  const month = document.getElementById("filterMonth").value;
+  const storeF = document.getElementById("filterOrderStore").value;
+  const vendorF = document.getElementById("filterOrderVendor").value;
+  const statusF = document.getElementById("filterOrderStatus").value;
+  return orders.filter(o=>{
+    if (month){
+      const d = new Date(o.createdAt);
+      const ym = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+      if (ym !== month) return false;
+    }
+    if (storeF && o.storeId !== storeF) return false;
+    if (vendorF && o.vendorId !== vendorF) return false;
+    if (statusF && o.status !== statusF) return false;
+    return true;
+  });
+}
+async function setOrderStatus(id, status){
+  try{ await fbPatch("orders/"+id, { status }); await fetchAll(); }catch(e){ alert("更新失敗：" + e.message); }
+}
+async function deleteOrder(id){
+  if (!confirm("確定刪除這筆訂單？")) return;
+  try{ await fbDelete("orders/"+id); await fetchAll(); }catch(e){ alert("刪除失敗：" + e.message); }
+}
+function renderOrderList(){
+  const rows = document.getElementById("orderListRows");
+  const empty = document.getElementById("orderListEmpty");
+  const list = filteredOrders();
+  rows.innerHTML = "";
+  empty.style.display = list.length ? "none" : "block";
+  list.forEach(o=>{
+    const dt = new Date(o.createdAt);
+    const dtStr = dt.getFullYear()+"/"+String(dt.getMonth()+1).padStart(2,"0")+"/"+String(dt.getDate()).padStart(2,"0")+" "+String(dt.getHours()).padStart(2,"0")+":"+String(dt.getMinutes()).padStart(2,"0");
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${dtStr}</td>
+      <td>${esc(o.storeName||storeName(o.storeId))}</td>
+      <td>${esc(o.vendorName||vendorName(o.vendorId))}</td>
+      <td><span class="badge ${badgeClass(o.status)}">${esc(o.status)}</span></td>
+      <td>${fmtMoney(o.shippingFee)}</td>
+      <td>${fmtMoney(o.total)}</td>
+      <td></td>
+    `;
+    const actionTd = tr.lastElementChild;
+    const detailBtn = document.createElement("button");
+    detailBtn.className = "ghost"; detailBtn.textContent = "明細";
+    detailBtn.onclick = ()=>{ expandedOrderId = expandedOrderId === o.id ? null : o.id; renderOrderList(); };
+    actionTd.appendChild(detailBtn);
+
+    if (o.status !== "已取消" && o.status !== "已出貨"){
+      const nextStatus = o.status === "未處理" ? "處理中" : "已出貨";
+      const nextBtn = document.createElement("button");
+      nextBtn.className = "small"; nextBtn.style.marginLeft="4px";
+      nextBtn.textContent = o.status === "未處理" ? "開始處理" : "標記已出貨";
+      nextBtn.onclick = ()=>setOrderStatus(o.id, nextStatus);
+      actionTd.appendChild(nextBtn);
+
+      const cancelBtn = document.createElement("button");
+      cancelBtn.className = "ghost"; cancelBtn.style.marginLeft="4px"; cancelBtn.textContent = "取消";
+      cancelBtn.onclick = ()=>setOrderStatus(o.id, "已取消");
+      actionTd.appendChild(cancelBtn);
+    }
+    const delBtn = document.createElement("button");
+    delBtn.className = "ghost"; delBtn.style.marginLeft="4px"; delBtn.textContent="刪除";
+    delBtn.onclick = ()=>deleteOrder(o.id);
+    actionTd.appendChild(delBtn);
+
+    rows.appendChild(tr);
+
+    if (expandedOrderId === o.id){
+      const exTr = document.createElement("tr");
+      exTr.className = "expand-row";
+      const itemsHtml = (o.items||[]).map(it=>`<div>${esc(it.name)} ${esc(it.unit||"")} × ${it.qty} = ${fmtMoney(it.price*it.qty)}</div>`).join("");
+      exTr.innerHTML = `<td colspan="7">${itemsHtml || "無明細"}</td>`;
+      rows.appendChild(exTr);
+    }
+  });
+}
+function exportOrdersCsv(){
+  const list = filteredOrders();
+  if (!list.length){ alert("沒有可匯出的資料"); return; }
+  const header = ["訂單時間","門市","供應商","配送狀態","運費","總計","品項明細"];
+  const lines = [header.join(",")];
+  list.forEach(o=>{
+    const dt = new Date(o.createdAt).toLocaleString("zh-TW");
+    const itemsStr = (o.items||[]).map(it=>`${it.name} x${it.qty}`).join(" / ");
+    const row = [dt, o.storeName||storeName(o.storeId), o.vendorName||vendorName(o.vendorId), o.status, o.shippingFee, o.total, itemsStr];
+    lines.push(row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(","));
+  });
+  const csv = "\uFEFF" + lines.join("\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = `訂單紀錄_${document.getElementById("filterMonth").value||"全部"}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- 帳款處理 ---------- */
+function ordersInMonth(month){
+  return orders.filter(o=>{
+    if (o.status === "已取消") return false;
+    const d = new Date(o.createdAt);
+    const ym = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+    return ym === month;
+  });
+}
+function settlementDocId(type, partyId, month){
+  return type + "_" + partyId + "_" + month;
+}
+function settlementStatus(type, partyId, month){
+  const s = settlements.find(x=>x.id === settlementDocId(type, partyId, month));
+  return s ? s.status : "unpaid";
+}
+async function toggleSettlement(type, partyId, month){
+  const id = settlementDocId(type, partyId, month);
+  const cur = settlementStatus(type, partyId, month);
+  const next = cur === "paid" ? "unpaid" : "paid";
+  try{
+    await fbPut("settlements/"+id, { type, partyId, month, status: next, updatedAt: Date.now() });
+    await fetchAll();
+  }catch(e){ alert("更新失敗：" + e.message); }
+}
+function renderAccounts(){
+  const monthEl = document.getElementById("acctMonth");
+  const month = monthEl ? monthEl.value : todayMonth();
+  if (!month) return;
+  const monthOrders = ordersInMonth(month);
+
+  const byStore = {};
+  monthOrders.forEach(o=>{ byStore[o.storeId] = (byStore[o.storeId]||0) + (o.total||0); });
+  const recRows = document.getElementById("receivableRows");
+  const recEmpty = document.getElementById("receivableEmpty");
+  recRows.innerHTML = "";
+  const storeIds = Object.keys(byStore);
+  recEmpty.style.display = storeIds.length ? "none" : "block";
+  storeIds.forEach(sid=>{
+    const status = settlementStatus("store", sid, month);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${esc(storeName(sid))}</td>
+      <td>${fmtMoney(byStore[sid])}</td>
+      <td><span class="badge ${status==='paid'?'badge-processing':'badge-pending'}">${status==='paid'?'已收款':'未收款'}</span></td>
+      <td><button class="small" data-sid="${sid}">${status==='paid'?'取消標記':'標記已收款'}</button></td>
+    `;
+    tr.querySelector("button").onclick = ()=>toggleSettlement("store", sid, month);
+    recRows.appendChild(tr);
+  });
+
+  const byVendor = {};
+  monthOrders.forEach(o=>{ byVendor[o.vendorId] = (byVendor[o.vendorId]||0) + (o.total||0); });
+  const payRows = document.getElementById("payableRows");
+  const payEmpty = document.getElementById("payableEmpty");
+  payRows.innerHTML = "";
+  const vendorIds = Object.keys(byVendor);
+  payEmpty.style.display = vendorIds.length ? "none" : "block";
+  vendorIds.forEach(vid=>{
+    const status = settlementStatus("vendor", vid, month);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${esc(vendorName(vid))}</td>
+      <td>${fmtMoney(byVendor[vid])}</td>
+      <td><span class="badge ${status==='paid'?'badge-processing':'badge-pending'}">${status==='paid'?'已付款':'未付款'}</span></td>
+      <td><button class="small" data-vid="${vid}">${status==='paid'?'取消標記':'標記已付款'}</button></td>
+    `;
+    tr.querySelector("button").onclick = ()=>toggleSettlement("vendor", vid, month);
+    payRows.appendChild(tr);
+  });
+}
+
+/* ---------- 設定 ---------- */
+function renderHqSettings(){
+  document.getElementById("hqBrand").value = hqSettings.brand || "";
+  document.getElementById("hqContact").value = hqSettings.contact || "";
+  document.getElementById("hqPhone").value = hqSettings.phone || "";
+  document.getElementById("hqEmail").value = hqSettings.email || "";
+  document.getElementById("hqAddress").value = hqSettings.address || "";
+  document.getElementById("hqAnnouncement").value = hqSettings.announcement || "";
+}
+async function saveHqInfo(){
+  const data = {
+    brand: document.getElementById("hqBrand").value.trim(),
+    contact: document.getElementById("hqContact").value.trim(),
+    phone: document.getElementById("hqPhone").value.trim(),
+    email: document.getElementById("hqEmail").value.trim(),
+    address: document.getElementById("hqAddress").value.trim(),
+  };
+  try{
+    await fbPatch("meta/hq", data);
+    await fetchAll();
+    flashSaved("總部資訊已儲存");
+  }catch(e){ alert("儲存失敗：" + e.message); }
+}
+async function saveAnnouncement(){
+  const announcement = document.getElementById("hqAnnouncement").value.trim();
+  try{
+    await fbPatch("meta/hq", { announcement });
+    await fetchAll();
+    flashSaved("公告已儲存");
+  }catch(e){ alert("儲存失敗：" + e.message); }
+}
+function flashSaved(msg){
+  const el = document.getElementById("settingsSavedMsg");
+  el.textContent = "✓ " + msg;
+  el.style.display = "block";
+  setTimeout(()=>{ el.style.display = "none"; }, 2500);
+}
+
+window.addEventListener("DOMContentLoaded", init);
+if (document.readyState !== "loading") init();
+</script>
+</body>
+</html>
